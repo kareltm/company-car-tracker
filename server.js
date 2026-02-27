@@ -13,12 +13,25 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+/*
+  DATABASE SETUP - Run this SQL in Supabase SQL Editor:
+
+  CREATE TABLE IF NOT EXISTS reservations (
+    id SERIAL PRIMARY KEY,
+    plate TEXT NOT NULL REFERENCES cars(plate) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    date DATE NOT NULL,
+    UNIQUE(plate, date)
+  );
+*/
+
+// --- Cars ---
+
 // Get all cars
 app.get("/api/cars", async (req, res) => {
-  const { data, error } = await supabase.from("cars").select("*");
+  const { data, error } = await supabase.from("cars").select("plate").order("plate");
   if (error) return res.status(500).json({ error: error.message });
-  // Map to the format the frontend expects
-  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
+  res.json(data.map((c) => c.plate));
 });
 
 // Add a new car
@@ -39,43 +52,8 @@ app.post("/api/cars", async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 
-  const { data } = await supabase.from("cars").select("*");
-  res.status(201).json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
-});
-
-// Claim a car
-app.post("/api/cars/:plate/claim", async (req, res) => {
-  const { name } = req.body;
-  if (!name || !name.trim()) {
-    return res.status(400).json({ error: "Name is required" });
-  }
-
-  const { data: updated, error } = await supabase
-    .from("cars")
-    .update({ used_by: name.trim() })
-    .ilike("plate", req.params.plate)
-    .select();
-
-  if (error) return res.status(500).json({ error: error.message });
-  if (updated.length === 0) return res.status(404).json({ error: "Car not found" });
-
-  const { data } = await supabase.from("cars").select("*");
-  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
-});
-
-// Release a car
-app.post("/api/cars/:plate/release", async (req, res) => {
-  const { data: updated, error } = await supabase
-    .from("cars")
-    .update({ used_by: null })
-    .ilike("plate", req.params.plate)
-    .select();
-
-  if (error) return res.status(500).json({ error: error.message });
-  if (updated.length === 0) return res.status(404).json({ error: "Car not found" });
-
-  const { data } = await supabase.from("cars").select("*");
-  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
+  const { data } = await supabase.from("cars").select("plate").order("plate");
+  res.status(201).json(data.map((c) => c.plate));
 });
 
 // Remove a car
@@ -87,8 +65,61 @@ app.delete("/api/cars/:plate", async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  const { data } = await supabase.from("cars").select("*");
-  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
+  const { data } = await supabase.from("cars").select("plate").order("plate");
+  res.json(data.map((c) => c.plate));
+});
+
+// --- Reservations ---
+
+// Get reservations for a date range
+app.get("/api/reservations", async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) {
+    return res.status(400).json({ error: "from and to query params required (YYYY-MM-DD)" });
+  }
+
+  const { data, error } = await supabase
+    .from("reservations")
+    .select("*")
+    .gte("date", from)
+    .lte("date", to)
+    .order("date");
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Create a reservation
+app.post("/api/reservations", async (req, res) => {
+  const { plate, name, date } = req.body;
+  if (!plate || !name || !date) {
+    return res.status(400).json({ error: "plate, name, and date are required" });
+  }
+
+  const { data, error } = await supabase
+    .from("reservations")
+    .insert({ plate: plate.trim(), name: name.trim(), date })
+    .select();
+
+  if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "This car is already reserved on that day" });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.status(201).json(data[0]);
+});
+
+// Delete a reservation
+app.delete("/api/reservations/:id", async (req, res) => {
+  const { error } = await supabase
+    .from("reservations")
+    .delete()
+    .eq("id", req.params.id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
 });
 
 // Only start listening when not running on Vercel

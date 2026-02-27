@@ -9,151 +9,312 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f2f5;
-      color: #333;
+      background: #e5f0ff;
+      color: #003366;
       padding: 20px;
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 600px;
+      max-width: 960px;
       margin: 0 auto;
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 24px;
-      color: #1a1a2e;
+      margin-bottom: 28px;
+      color: #003366;
+      font-size: 28px;
+      font-weight: 700;
     }
 
-    .add-car {
+    /* --- Top bar: car select + name + add car --- */
+    .top-bar {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,51,102,0.08);
       display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
 
-    .add-car input {
-      flex: 1;
-      padding: 10px 14px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-
-    .add-car button {
-      padding: 10px 20px;
-      background: #1a1a2e;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .add-car button:hover { background: #16213e; }
-
-    .car-list {
+    .field {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 4px;
     }
 
-    .car-card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .car-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .plate {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      background: #f8f9fa;
-      border: 2px solid #dee2e6;
-      border-radius: 6px;
-      padding: 4px 12px;
-    }
-
-    .status {
-      font-size: 13px;
+    .field label {
+      font-size: 12px;
       font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #003366;
+      opacity: 0.7;
     }
 
-    .status.available {
-      background: #d4edda;
-      color: #155724;
+    .field select,
+    .field input {
+      padding: 10px 14px;
+      border: 2px solid #d0dce8;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #003366;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s;
     }
 
-    .status.in-use {
-      background: #f8d7da;
-      color: #721c24;
+    .field select:focus,
+    .field input:focus {
+      border-color: #3c66fa;
     }
 
-    .car-actions {
+    .field select {
+      min-width: 160px;
+      cursor: pointer;
+    }
+
+    .field.grow {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field.grow select,
+    .field.grow input {
+      width: 100%;
+    }
+
+    .field input {
+      width: 140px;
+    }
+
+    .top-bar .divider {
+      width: 1px;
+      height: 36px;
+      background: #d0dce8;
+      align-self: flex-end;
+      margin: 0 4px;
+    }
+
+    .add-car-group {
       display: flex;
       gap: 8px;
-      align-items: center;
-    }
-
-    .car-actions input {
-      flex: 1;
-      padding: 8px 12px;
-      border: 2px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
+      align-items: flex-end;
     }
 
     .btn {
-      padding: 8px 16px;
+      padding: 10px 18px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 13px;
       font-weight: 600;
+      transition: background 0.15s, opacity 0.15s;
     }
 
-    .btn-claim {
-      background: #28a745;
-      color: white;
+    .btn-primary {
+      background: #3c66fa;
+      color: #ffffff;
     }
-    .btn-claim:hover { background: #218838; }
+    .btn-primary:hover { background: #2b52d4; }
 
-    .btn-release {
-      background: #dc3545;
-      color: white;
-    }
-    .btn-release:hover { background: #c82333; }
-
-    .btn-remove {
+    .btn-outline {
       background: none;
-      color: #999;
-      font-size: 18px;
+      border: 2px solid #3c66fa;
+      color: #3c66fa;
+    }
+    .btn-outline:hover { background: #e5f0ff; }
+
+    .btn-danger-sm {
+      background: none;
+      border: none;
+      color: #003366;
+      opacity: 0.35;
+      font-size: 16px;
       padding: 4px 8px;
+      cursor: pointer;
+      transition: opacity 0.15s, color 0.15s;
     }
-    .btn-remove:hover { color: #dc3545; }
+    .btn-danger-sm:hover { opacity: 1; color: #d9534f; }
 
-    .used-by {
-      font-size: 15px;
-      flex: 1;
+    /* --- Week navigation --- */
+    .week-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
     }
 
-    .used-by strong { color: #1a1a2e; }
+    .week-nav button {
+      background: #ffffff;
+      border: 2px solid #d0dce8;
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #003366;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .week-nav button:hover { border-color: #3c66fa; background: #e5f0ff; }
+    .week-nav button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .week-nav button:disabled:hover {
+      border-color: #d0dce8;
+      background: #ffffff;
+    }
 
-    .empty {
+    .week-nav .week-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #003366;
+      min-width: 260px;
       text-align: center;
-      padding: 40px;
-      color: #999;
+    }
+
+    /* --- Week grid --- */
+    .week-grid {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,51,102,0.08);
+      overflow: hidden;
+    }
+
+    .week-grid table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .week-grid th {
+      background: #003366;
+      color: #ffffff;
+      padding: 12px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .week-grid th:first-child {
+      text-align: left;
+      padding-left: 16px;
+      width: 130px;
+    }
+
+    .week-grid th .day-date {
+      display: block;
+      font-weight: 400;
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    .week-grid td {
+      border: 1px solid #e8eff5;
+      padding: 0;
+      text-align: center;
+      height: 52px;
+      vertical-align: middle;
+      position: relative;
+    }
+
+    .week-grid tr:nth-child(even) td {
+      background: #f7faff;
+    }
+
+    .week-grid td:first-child {
+      text-align: left;
+      padding: 8px 12px 8px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      background: #e5f0ff !important;
+      border-right: 2px solid #d0dce8;
+      white-space: nowrap;
+    }
+
+    .plate-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .week-grid td.cell-empty {
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .week-grid td.cell-empty:hover {
+      background: #e5f0ff;
+    }
+
+    .week-grid td.cell-empty.cell-active:hover {
+      background: #d0e0ff;
+    }
+
+    .week-grid td.cell-reserved {
+      background: #3c66fa !important;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .week-grid td.cell-reserved:hover {
+      background: #2b52d4 !important;
+    }
+
+    .week-grid td.cell-today {
+      box-shadow: inset 0 -3px 0 0 #3c66fa;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #003366;
+      opacity: 0.5;
       font-size: 15px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #003366;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 12px; }
+      .top-bar { flex-direction: column; align-items: stretch; }
+      .top-bar .divider { display: none; }
+      .field select, .field input { width: 100%; min-width: 0; }
+      .add-car-group { flex-direction: row; }
+      .week-nav .week-label { font-size: 14px; min-width: auto; }
+      .week-grid th, .week-grid td { padding: 6px 4px; font-size: 12px; }
+      .week-grid td:first-child { padding: 6px 8px; }
     }
   </style>
 </head>
@@ -161,54 +322,117 @@
   <div class="container">
     <h1>Company Car Tracker</h1>
 
-    <div class="add-car">
-      <input type="text" id="newPlate" placeholder="License plate (e.g. AB-123-CD)" />
-      <button onclick="addCar()">Add Car</button>
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="field grow">
+        <label>Car</label>
+        <select id="carSelect">
+          <option value="">-- Select a car --</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Karel" />
+      </div>
+      <div class="divider"></div>
+      <div class="add-car-group">
+        <div class="field">
+          <label>New car</label>
+          <input type="text" id="newPlate" placeholder="e.g. AB-123-CD" />
+        </div>
+        <button class="btn btn-outline" onclick="addCar()">+ Add</button>
+      </div>
     </div>
 
-    <div id="carList" class="car-list"></div>
+    <!-- Week navigation -->
+    <div class="week-nav">
+      <button id="prevWeek" onclick="changeWeek(-1)">&larr; Previous</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button id="nextWeek" onclick="changeWeek(1)">Next &rarr;</button>
+    </div>
+
+    <!-- Week grid -->
+    <div class="week-grid" id="weekGrid"></div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
-    async function loadCars() {
-      const res = await fetch("/api/cars");
-      const cars = await res.json();
-      render(cars);
+    // --- State ---
+    let cars = [];
+    let reservations = [];
+    let weekOffset = 0; // 0 = this week, 1 = next week
+
+    // --- Date helpers ---
+    function getMonday(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      date.setDate(diff);
+      date.setHours(0, 0, 0, 0);
+      return date;
     }
 
-    function render(cars) {
-      const list = document.getElementById("carList");
+    function addDays(d, n) {
+      const r = new Date(d);
+      r.setDate(r.getDate() + n);
+      return r;
+    }
 
-      if (cars.length === 0) {
-        list.innerHTML = '<div class="empty">No cars added yet. Add a license plate above to get started.</div>';
-        return;
+    function fmtDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function fmtShort(d) {
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+
+    function fmtDayNum(d) {
+      return d.getDate();
+    }
+
+    function getWeekDates() {
+      const monday = getMonday(new Date());
+      const shifted = addDays(monday, weekOffset * 7);
+      return Array.from({ length: 7 }, (_, i) => addDays(shifted, i));
+    }
+
+    function isToday(d) {
+      const t = new Date();
+      return d.getFullYear() === t.getFullYear() &&
+             d.getMonth() === t.getMonth() &&
+             d.getDate() === t.getDate();
+    }
+
+    const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    // --- API ---
+    async function loadCars() {
+      const res = await fetch("/api/cars");
+      cars = await res.json();
+      renderCarSelect();
+    }
+
+    async function loadReservations() {
+      const dates = getWeekDates();
+      const from = fmtDate(dates[0]);
+      const to = fmtDate(dates[6]);
+      try {
+        const res = await fetch(`/api/reservations?from=${from}&to=${to}`);
+        if (res.ok) {
+          reservations = await res.json();
+        } else {
+          reservations = [];
+        }
+      } catch {
+        reservations = [];
       }
-
-      list.innerHTML = cars.map(car => `
-        <div class="car-card">
-          <div class="car-header">
-            <span class="plate">${esc(car.plate)}</span>
-            <span class="status ${car.usedBy ? 'in-use' : 'available'}">
-              ${car.usedBy ? 'In Use' : 'Available'}
-            </span>
-          </div>
-          <div class="car-actions">
-            ${car.usedBy
-              ? `<span class="used-by">Used by <strong>${esc(car.usedBy)}</strong></span>
-                 <button class="btn btn-release" onclick="releaseCar('${esc(car.plate)}')">Release</button>`
-              : `<input type="text" id="name-${esc(car.plate)}" placeholder="Your name" />
-                 <button class="btn btn-claim" onclick="claimCar('${esc(car.plate)}')">Claim</button>`
-            }
-            <button class="btn btn-remove" onclick="removeCar('${esc(car.plate)}')" title="Remove car">&times;</button>
-          </div>
-        </div>
-      `).join("");
     }
 
     async function addCar() {
       const input = document.getElementById("newPlate");
       const plate = input.value.trim();
-      if (!plate) return;
+      if (!plate) { input.focus(); return; }
 
       const res = await fetch("/api/cars", {
         method: "POST",
@@ -217,52 +441,197 @@
       });
 
       if (res.ok) {
+        cars = await res.json();
         input.value = "";
-        render(await res.json());
+        renderCarSelect();
+        renderGrid();
+        showToast("Car added");
       } else {
         const err = await res.json();
-        alert(err.error);
+        showToast(err.error);
       }
     }
 
-    async function claimCar(plate) {
-      const input = document.getElementById("name-" + plate);
-      const name = input.value.trim();
-      if (!name) { input.focus(); return; }
-
-      const res = await fetch(`/api/cars/${encodeURIComponent(plate)}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-      });
-
-      if (res.ok) render(await res.json());
-    }
-
-    async function releaseCar(plate) {
-      const res = await fetch(`/api/cars/${encodeURIComponent(plate)}/release`, {
-        method: "POST"
-      });
-      if (res.ok) render(await res.json());
-    }
-
     async function removeCar(plate) {
-      if (!confirm(`Remove car ${plate}?`)) return;
+      if (!confirm(`Remove car ${plate} and all its reservations?`)) return;
+
       const res = await fetch(`/api/cars/${encodeURIComponent(plate)}`, {
         method: "DELETE"
       });
-      if (res.ok) render(await res.json());
+
+      if (res.ok) {
+        cars = await res.json();
+        renderCarSelect();
+        await loadReservations();
+        renderGrid();
+        showToast("Car removed");
+      }
     }
 
+    async function makeReservation(plate, date) {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) {
+        showToast("Enter your name first");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plate, name, date })
+      });
+
+      if (res.ok) {
+        await loadReservations();
+        renderGrid();
+        showToast(`Reserved ${plate} for ${name}`);
+      } else {
+        const err = await res.json();
+        showToast(err.error);
+      }
+    }
+
+    async function cancelReservation(id, plate, name) {
+      if (!confirm(`Cancel reservation for ${name} on ${plate}?`)) return;
+
+      const res = await fetch(`/api/reservations/${id}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        await loadReservations();
+        renderGrid();
+        showToast("Reservation cancelled");
+      }
+    }
+
+    // --- Rendering ---
+    function renderCarSelect() {
+      const select = document.getElementById("carSelect");
+      const current = select.value;
+      select.innerHTML = '<option value="">-- Select a car --</option>' +
+        cars.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+      if (cars.includes(current)) select.value = current;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById("weekGrid");
+      const dates = getWeekDates();
+
+      if (cars.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No cars added yet. Add a license plate above to get started.</div>';
+        return;
+      }
+
+      // Build lookup: "plate|date" -> reservation
+      const lookup = {};
+      reservations.forEach(r => {
+        lookup[`${r.plate}|${r.date}`] = r;
+      });
+
+      const selectedCar = document.getElementById("carSelect").value;
+
+      let html = "<table><thead><tr><th>Car</th>";
+      dates.forEach((d, i) => {
+        html += `<th>${DAY_NAMES[i]}<span class="day-date">${fmtDayNum(d)}/${d.getMonth() + 1}</span></th>`;
+      });
+      html += "</tr></thead><tbody>";
+
+      cars.forEach(plate => {
+        html += "<tr>";
+        html += `<td><div class="plate-cell"><span>${esc(plate)}</span><button class="btn-danger-sm" onclick="removeCar('${esc(plate)}')" title="Remove car">&times;</button></div></td>`;
+
+        dates.forEach(d => {
+          const dateStr = fmtDate(d);
+          const key = `${plate}|${dateStr}`;
+          const r = lookup[key];
+          const today = isToday(d);
+          const todayClass = today ? " cell-today" : "";
+
+          if (r) {
+            html += `<td class="cell-reserved${todayClass}" onclick="cancelReservation(${r.id}, '${esc(plate)}', '${esc(r.name)}')" title="Click to cancel">${esc(r.name)}</td>`;
+          } else {
+            const active = selectedCar === plate ? " cell-active" : "";
+            html += `<td class="cell-empty${todayClass}${active}" onclick="cellClick('${esc(plate)}', '${dateStr}')" title="${selectedCar === plate ? 'Click to reserve' : 'Select this car first'}"></td>`;
+          }
+        });
+
+        html += "</tr>";
+      });
+
+      html += "</tbody></table>";
+      grid.innerHTML = html;
+    }
+
+    function cellClick(plate, date) {
+      const select = document.getElementById("carSelect");
+      // Auto-select the car if none selected
+      if (!select.value) {
+        select.value = plate;
+      }
+      // If clicking a different car row than selected, switch selection
+      if (select.value !== plate) {
+        select.value = plate;
+        renderGrid();
+        showToast(`Switched to ${plate}`);
+        return;
+      }
+      makeReservation(plate, date);
+    }
+
+    function updateWeekLabel() {
+      const dates = getWeekDates();
+      const label = `${fmtShort(dates[0])} — ${fmtShort(dates[6])}`;
+      document.getElementById("weekLabel").textContent = label;
+
+      document.getElementById("prevWeek").disabled = weekOffset <= 0;
+      document.getElementById("nextWeek").disabled = weekOffset >= 1;
+    }
+
+    async function changeWeek(dir) {
+      const newOffset = weekOffset + dir;
+      if (newOffset < 0 || newOffset > 1) return;
+      weekOffset = newOffset;
+      updateWeekLabel();
+      await loadReservations();
+      renderGrid();
+    }
+
+    // --- Toast ---
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._timeout);
+      el._timeout = setTimeout(() => el.classList.remove("show"), 2500);
+    }
+
+    // --- Util ---
     function esc(str) {
       const d = document.createElement("div");
       d.textContent = str;
       return d.innerHTML;
     }
 
-    // Load cars on page load and refresh every 10 seconds
-    loadCars();
-    setInterval(loadCars, 10000);
+    // --- Init ---
+    async function init() {
+      await loadCars();
+      updateWeekLabel();
+      await loadReservations();
+      renderGrid();
+
+      // Re-render grid when car selection changes
+      document.getElementById("carSelect").addEventListener("change", renderGrid);
+    }
+
+    init();
+    // Auto-refresh every 15 seconds
+    setInterval(async () => {
+      await loadCars();
+      await loadReservations();
+      renderGrid();
+    }, 15000);
   </script>
 </body>
 </html>
