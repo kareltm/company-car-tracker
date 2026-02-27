@@ -129,7 +129,7 @@
     }
     .btn-outline:hover { background: #e5f0ff; }
 
-    .btn-remove-car {
+    .btn-remove {
       background: none;
       border: 2px solid #d0dce8;
       border-radius: 8px;
@@ -142,10 +142,10 @@
       transition: opacity 0.15s, color 0.15s, border-color 0.15s;
       display: none;
     }
-    .btn-remove-car.visible {
+    .btn-remove.visible {
       display: inline-block;
     }
-    .btn-remove-car:hover {
+    .btn-remove:hover {
       opacity: 1;
       color: #d9534f;
       border-color: #d9534f;
@@ -368,11 +368,14 @@
           <option value="">-- Select a car --</option>
         </select>
       </div>
-      <button class="btn btn-remove-car" id="removeCarBtn" onclick="removeSelectedCar()" title="Remove selected car">&times;</button>
-      <div class="field">
+      <button class="btn btn-remove" id="removeCarBtn" onclick="removeSelectedCar()" title="Remove selected car">&times;</button>
+      <div class="field grow">
         <label>Your name</label>
-        <input type="text" id="nameInput" placeholder="e.g. Karel" />
+        <select id="nameSelect">
+          <option value="">-- Select name --</option>
+        </select>
       </div>
+      <button class="btn btn-remove" id="removeNameBtn" onclick="removeSelectedName()" title="Remove selected name">&times;</button>
       <div class="divider"></div>
       <div class="add-car-group">
         <div class="field">
@@ -380,6 +383,13 @@
           <input type="text" id="newPlate" placeholder="e.g. AB-123-CD" />
         </div>
         <button class="btn btn-outline" onclick="addCar()">+ Add</button>
+      </div>
+      <div class="add-car-group">
+        <div class="field">
+          <label>New name</label>
+          <input type="text" id="newName" placeholder="e.g. Karel" />
+        </div>
+        <button class="btn btn-outline" onclick="addName()">+ Add</button>
       </div>
     </div>
 
@@ -399,6 +409,7 @@
   <script>
     // --- State ---
     let cars = [];
+    let names = [];
     let reservations = [];
     let weekOffset = 0; // 0 = this week, 1 = next week
 
@@ -454,6 +465,20 @@
       const res = await fetch("/api/cars");
       cars = await res.json();
       renderCarSelect();
+    }
+
+    async function loadNames() {
+      try {
+        const res = await fetch("/api/names");
+        if (res.ok) {
+          names = await res.json();
+        } else {
+          names = [];
+        }
+      } catch {
+        names = [];
+      }
+      renderNameSelect();
     }
 
     async function loadReservations() {
@@ -522,11 +547,58 @@
       }
     }
 
+    async function addName() {
+      const input = document.getElementById("newName");
+      const name = input.value.trim();
+      if (!name) { input.focus(); return; }
+
+      const res = await fetch("/api/names", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+
+      if (res.ok) {
+        names = await res.json();
+        input.value = "";
+        renderNameSelect();
+        showToast("Name added");
+      } else {
+        const err = await res.json();
+        showToast(err.error);
+      }
+    }
+
+    function removeSelectedName() {
+      const name = document.getElementById("nameSelect").value;
+      if (name) removeName(name);
+    }
+
+    function updateRemoveNameBtn() {
+      const btn = document.getElementById("removeNameBtn");
+      const selected = document.getElementById("nameSelect").value;
+      btn.classList.toggle("visible", !!selected);
+    }
+
+    async function removeName(name) {
+      if (!confirm(`Remove "${name}" from the name list?`)) return;
+
+      const res = await fetch(`/api/names/${encodeURIComponent(name)}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        names = await res.json();
+        renderNameSelect();
+        showToast("Name removed");
+      }
+    }
+
     async function makeReservation(plate, date, hour) {
-      const name = document.getElementById("nameInput").value.trim();
+      const name = document.getElementById("nameSelect").value;
       if (!name) {
-        showToast("Enter your name first");
-        document.getElementById("nameInput").focus();
+        showToast("Select your name first");
+        document.getElementById("nameSelect").focus();
         return;
       }
 
@@ -547,10 +619,10 @@
     }
 
     async function makeBulkReservation(plate, date, hours) {
-      const name = document.getElementById("nameInput").value.trim();
+      const name = document.getElementById("nameSelect").value;
       if (!name) {
-        showToast("Enter your name first");
-        document.getElementById("nameInput").focus();
+        showToast("Select your name first");
+        document.getElementById("nameSelect").focus();
         return;
       }
 
@@ -613,6 +685,15 @@
         cars.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
       if (cars.includes(current)) select.value = current;
       updateRemoveBtn();
+    }
+
+    function renderNameSelect() {
+      const select = document.getElementById("nameSelect");
+      const current = select.value;
+      select.innerHTML = '<option value="">-- Select name --</option>' +
+        names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      if (names.includes(current)) select.value = current;
+      updateRemoveNameBtn();
     }
 
     function renderGrid() {
@@ -787,22 +868,25 @@
 
     // --- Init ---
     async function init() {
-      await loadCars();
+      await Promise.all([loadCars(), loadNames()]);
       updateWeekLabel();
       await loadReservations();
       renderGrid();
 
-      // Re-render grid when car selection changes
       document.getElementById("carSelect").addEventListener("change", () => {
         updateRemoveBtn();
         renderGrid();
+      });
+
+      document.getElementById("nameSelect").addEventListener("change", () => {
+        updateRemoveNameBtn();
       });
     }
 
     init();
     // Auto-refresh every 15 seconds
     setInterval(async () => {
-      await loadCars();
+      await Promise.all([loadCars(), loadNames()]);
       await loadReservations();
       renderGrid();
     }, 15000);

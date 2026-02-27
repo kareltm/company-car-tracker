@@ -25,6 +25,10 @@ app.use(express.static(path.join(__dirname, "public")));
     UNIQUE(plate, date, hour)
   );
 
+  CREATE TABLE IF NOT EXISTS names (
+    name TEXT PRIMARY KEY
+  );
+
   -- If migrating from the old schema (without hour column):
   -- ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_plate_date_key;
   -- ALTER TABLE reservations ADD COLUMN hour INTEGER NOT NULL DEFAULT 8;
@@ -73,6 +77,50 @@ app.delete("/api/cars/:plate", async (req, res) => {
 
   const { data } = await supabase.from("cars").select("plate").order("plate");
   res.json(data.map((c) => c.plate));
+});
+
+// --- Names ---
+
+// Get all names
+app.get("/api/names", async (req, res) => {
+  const { data, error } = await supabase.from("names").select("name").order("name");
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data.map((n) => n.name));
+});
+
+// Add a new name
+app.post("/api/names", async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "Name is required" });
+  }
+
+  const { error } = await supabase
+    .from("names")
+    .insert({ name: name.trim() });
+
+  if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Name already exists" });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  const { data } = await supabase.from("names").select("name").order("name");
+  res.status(201).json(data.map((n) => n.name));
+});
+
+// Remove a name
+app.delete("/api/names/:name", async (req, res) => {
+  const { error } = await supabase
+    .from("names")
+    .delete()
+    .eq("name", req.params.name);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const { data } = await supabase.from("names").select("name").order("name");
+  res.json(data.map((n) => n.name));
 });
 
 // --- Reservations ---
