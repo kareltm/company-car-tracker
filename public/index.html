@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Car Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #1a1a2e;
+    }
+
+    .add-car {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .add-car input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .add-car button {
+      padding: 10px 20px;
+      background: #1a1a2e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .add-car button:hover { background: #16213e; }
+
+    .car-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .car-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .car-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .plate {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: #f8f9fa;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      padding: 4px 12px;
+    }
+
+    .status {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .status.available {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.in-use {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .car-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .car-actions input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .btn-claim {
+      background: #28a745;
+      color: white;
+    }
+    .btn-claim:hover { background: #218838; }
+
+    .btn-release {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-release:hover { background: #c82333; }
+
+    .btn-remove {
+      background: none;
+      color: #999;
+      font-size: 18px;
+      padding: 4px 8px;
+    }
+    .btn-remove:hover { color: #dc3545; }
+
+    .used-by {
+      font-size: 15px;
+      flex: 1;
+    }
+
+    .used-by strong { color: #1a1a2e; }
+
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Company Car Tracker</h1>
+
+    <div class="add-car">
+      <input type="text" id="newPlate" placeholder="License plate (e.g. AB-123-CD)" />
+      <button onclick="addCar()">Add Car</button>
+    </div>
+
+    <div id="carList" class="car-list"></div>
+  </div>
+
+  <script>
+    async function loadCars() {
+      const res = await fetch("/api/cars");
+      const cars = await res.json();
+      render(cars);
+    }
+
+    function render(cars) {
+      const list = document.getElementById("carList");
+
+      if (cars.length === 0) {
+        list.innerHTML = '<div class="empty">No cars added yet. Add a license plate above to get started.</div>';
+        return;
+      }
+
+      list.innerHTML = cars.map(car => `
+        <div class="car-card">
+          <div class="car-header">
+            <span class="plate">${esc(car.plate)}</span>
+            <span class="status ${car.usedBy ? 'in-use' : 'available'}">
+              ${car.usedBy ? 'In Use' : 'Available'}
+            </span>
+          </div>
+          <div class="car-actions">
+            ${car.usedBy
+              ? `<span class="used-by">Used by <strong>${esc(car.usedBy)}</strong></span>
+                 <button class="btn btn-release" onclick="releaseCar('${esc(car.plate)}')">Release</button>`
+              : `<input type="text" id="name-${esc(car.plate)}" placeholder="Your name" />
+                 <button class="btn btn-claim" onclick="claimCar('${esc(car.plate)}')">Claim</button>`
+            }
+            <button class="btn btn-remove" onclick="removeCar('${esc(car.plate)}')" title="Remove car">&times;</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function addCar() {
+      const input = document.getElementById("newPlate");
+      const plate = input.value.trim();
+      if (!plate) return;
+
+      const res = await fetch("/api/cars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plate })
+      });
+
+      if (res.ok) {
+        input.value = "";
+        render(await res.json());
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    }
+
+    async function claimCar(plate) {
+      const input = document.getElementById("name-" + plate);
+      const name = input.value.trim();
+      if (!name) { input.focus(); return; }
+
+      const res = await fetch(`/api/cars/${encodeURIComponent(plate)}/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+
+      if (res.ok) render(await res.json());
+    }
+
+    async function releaseCar(plate) {
+      const res = await fetch(`/api/cars/${encodeURIComponent(plate)}/release`, {
+        method: "POST"
+      });
+      if (res.ok) render(await res.json());
+    }
+
+    async function removeCar(plate) {
+      if (!confirm(`Remove car ${plate}?`)) return;
+      const res = await fetch(`/api/cars/${encodeURIComponent(plate)}`, {
+        method: "DELETE"
+      });
+      if (res.ok) render(await res.json());
+    }
+
+    function esc(str) {
+      const d = document.createElement("div");
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // Load cars on page load and refresh every 10 seconds
+    loadCars();
+    setInterval(loadCars, 10000);
+  </script>
+</body>
+</html>
