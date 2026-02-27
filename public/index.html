@@ -226,7 +226,7 @@
     .week-grid th:first-child {
       text-align: left;
       padding-left: 16px;
-      width: 130px;
+      width: 70px;
     }
 
     .week-grid th .day-date {
@@ -241,7 +241,7 @@
       border: 1px solid #e8eff5;
       padding: 0;
       text-align: center;
-      height: 52px;
+      height: 36px;
       vertical-align: middle;
       position: relative;
     }
@@ -251,21 +251,15 @@
     }
 
     .week-grid td:first-child {
-      text-align: left;
-      padding: 8px 12px 8px 16px;
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: 0.5px;
+      text-align: right;
+      padding: 4px 10px;
+      font-weight: 600;
+      font-size: 12px;
+      color: #003366;
+      opacity: 0.6;
       background: #e5f0ff !important;
       border-right: 2px solid #d0dce8;
       white-space: nowrap;
-    }
-
-    .plate-cell {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4px;
     }
 
     .week-grid td.cell-empty {
@@ -284,7 +278,7 @@
     .week-grid td.cell-reserved {
       background: #3c66fa !important;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.12s;
@@ -428,6 +422,7 @@
     }
 
     const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const HOURS = Array.from({ length: 15 }, (_, i) => 8 + i); // 8..22
 
     // --- API ---
     async function loadCars() {
@@ -502,7 +497,7 @@
       }
     }
 
-    async function makeReservation(plate, date) {
+    async function makeReservation(plate, date, hour) {
       const name = document.getElementById("nameInput").value.trim();
       if (!name) {
         showToast("Enter your name first");
@@ -513,13 +508,13 @@
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plate, name, date })
+        body: JSON.stringify({ plate, name, date, hour })
       });
 
       if (res.ok) {
         await loadReservations();
         renderGrid();
-        showToast(`Reserved ${plate} for ${name}`);
+        showToast(`Reserved ${plate} at ${hour}:00`);
       } else {
         const err = await res.json();
         showToast(err.error);
@@ -553,42 +548,47 @@
     function renderGrid() {
       const grid = document.getElementById("weekGrid");
       const dates = getWeekDates();
+      const selectedCar = document.getElementById("carSelect").value;
 
       if (cars.length === 0) {
         grid.innerHTML = '<div class="empty-state">No cars added yet. Add a license plate above to get started.</div>';
         return;
       }
 
-      // Build lookup: "plate|date" -> reservation
+      if (!selectedCar) {
+        grid.innerHTML = '<div class="empty-state">Select a car above to view its schedule.</div>';
+        return;
+      }
+
+      // Build lookup: "date|hour" -> reservation (filtered to selected car)
       const lookup = {};
       reservations.forEach(r => {
-        lookup[`${r.plate}|${r.date}`] = r;
+        if (r.plate === selectedCar) {
+          lookup[`${r.date}|${r.hour}`] = r;
+        }
       });
 
-      const selectedCar = document.getElementById("carSelect").value;
-
-      let html = "<table><thead><tr><th>Car</th>";
+      let html = "<table><thead><tr><th></th>";
       dates.forEach((d, i) => {
         html += `<th>${DAY_NAMES[i]}<span class="day-date">${fmtDayNum(d)}/${d.getMonth() + 1}</span></th>`;
       });
       html += "</tr></thead><tbody>";
 
-      cars.forEach(plate => {
+      HOURS.forEach(hour => {
         html += "<tr>";
-        html += `<td><div class="plate-cell"><span>${esc(plate)}</span><button class="btn-danger-sm" onclick="removeCar('${esc(plate)}')" title="Remove car">&times;</button></div></td>`;
+        html += `<td>${String(hour).padStart(2, "0")}:00</td>`;
 
         dates.forEach(d => {
           const dateStr = fmtDate(d);
-          const key = `${plate}|${dateStr}`;
+          const key = `${dateStr}|${hour}`;
           const r = lookup[key];
           const today = isToday(d);
           const todayClass = today ? " cell-today" : "";
 
           if (r) {
-            html += `<td class="cell-reserved${todayClass}" onclick="cancelReservation(${r.id}, '${esc(plate)}', '${esc(r.name)}')" title="Click to cancel">${esc(r.name)}</td>`;
+            html += `<td class="cell-reserved${todayClass}" onclick="cancelReservation(${r.id}, '${esc(selectedCar)}', '${esc(r.name)}')" title="Click to cancel">${esc(r.name)}</td>`;
           } else {
-            const active = selectedCar === plate ? " cell-active" : "";
-            html += `<td class="cell-empty${todayClass}${active}" onclick="cellClick('${esc(plate)}', '${dateStr}')" title="${selectedCar === plate ? 'Click to reserve' : 'Select this car first'}"></td>`;
+            html += `<td class="cell-empty cell-active${todayClass}" onclick="cellClick('${dateStr}', ${hour})" title="Click to reserve"></td>`;
           }
         });
 
@@ -599,20 +599,10 @@
       grid.innerHTML = html;
     }
 
-    function cellClick(plate, date) {
-      const select = document.getElementById("carSelect");
-      // Auto-select the car if none selected
-      if (!select.value) {
-        select.value = plate;
-      }
-      // If clicking a different car row than selected, switch selection
-      if (select.value !== plate) {
-        select.value = plate;
-        renderGrid();
-        showToast(`Switched to ${plate}`);
-        return;
-      }
-      makeReservation(plate, date);
+    function cellClick(date, hour) {
+      const plate = document.getElementById("carSelect").value;
+      if (!plate) return;
+      makeReservation(plate, date, hour);
     }
 
     function updateWeekLabel() {

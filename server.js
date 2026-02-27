@@ -21,8 +21,14 @@ app.use(express.static(path.join(__dirname, "public")));
     plate TEXT NOT NULL REFERENCES cars(plate) ON DELETE CASCADE,
     name TEXT NOT NULL,
     date DATE NOT NULL,
-    UNIQUE(plate, date)
+    hour INTEGER NOT NULL,
+    UNIQUE(plate, date, hour)
   );
+
+  -- If migrating from the old schema (without hour column):
+  -- ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_plate_date_key;
+  -- ALTER TABLE reservations ADD COLUMN hour INTEGER NOT NULL DEFAULT 8;
+  -- ALTER TABLE reservations ADD CONSTRAINT reservations_plate_date_hour_key UNIQUE(plate, date, hour);
 */
 
 // --- Cars ---
@@ -91,19 +97,24 @@ app.get("/api/reservations", async (req, res) => {
 
 // Create a reservation
 app.post("/api/reservations", async (req, res) => {
-  const { plate, name, date } = req.body;
-  if (!plate || !name || !date) {
-    return res.status(400).json({ error: "plate, name, and date are required" });
+  const { plate, name, date, hour } = req.body;
+  if (!plate || !name || !date || hour === undefined) {
+    return res.status(400).json({ error: "plate, name, date, and hour are required" });
+  }
+
+  const h = parseInt(hour);
+  if (isNaN(h) || h < 8 || h > 22) {
+    return res.status(400).json({ error: "hour must be between 8 and 22" });
   }
 
   const { data, error } = await supabase
     .from("reservations")
-    .insert({ plate: plate.trim(), name: name.trim(), date })
+    .insert({ plate: plate.trim(), name: name.trim(), date, hour: h })
     .select();
 
   if (error) {
     if (error.code === "23505") {
-      return res.status(409).json({ error: "This car is already reserved on that day" });
+      return res.status(409).json({ error: "This car is already reserved at that time" });
     }
     return res.status(500).json({ error: error.message });
   }
