@@ -1,96 +1,102 @@
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, "data.json");
+
+// Supabase setup
+const supabaseUrl = process.env.SUPABASE_URL || "https://nmgwoadartjylcifoimv.supabase.co";
+const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_x5YiauhQX3c8geHTjMum-A_77Y-Qm26";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-function readData() {
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ cars: [] }));
-  }
-  return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-}
-
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
 // Get all cars
-app.get("/api/cars", (req, res) => {
-  const data = readData();
-  res.json(data.cars);
+app.get("/api/cars", async (req, res) => {
+  const { data, error } = await supabase.from("cars").select("*");
+  if (error) return res.status(500).json({ error: error.message });
+  // Map to the format the frontend expects
+  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
 });
 
 // Add a new car
-app.post("/api/cars", (req, res) => {
+app.post("/api/cars", async (req, res) => {
   const { plate } = req.body;
   if (!plate || !plate.trim()) {
     return res.status(400).json({ error: "License plate is required" });
   }
 
-  const data = readData();
-  const exists = data.cars.some(
-    (c) => c.plate.toLowerCase() === plate.trim().toLowerCase()
-  );
-  if (exists) {
-    return res.status(409).json({ error: "Car already exists" });
+  const { error } = await supabase
+    .from("cars")
+    .insert({ plate: plate.trim().toUpperCase(), used_by: null });
+
+  if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Car already exists" });
+    }
+    return res.status(500).json({ error: error.message });
   }
 
-  data.cars.push({ plate: plate.trim().toUpperCase(), usedBy: null });
-  writeData(data);
-  res.status(201).json(data.cars);
+  const { data } = await supabase.from("cars").select("*");
+  res.status(201).json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
 });
 
 // Claim a car
-app.post("/api/cars/:plate/claim", (req, res) => {
+app.post("/api/cars/:plate/claim", async (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "Name is required" });
   }
 
-  const data = readData();
-  const car = data.cars.find(
-    (c) => c.plate.toLowerCase() === req.params.plate.toLowerCase()
-  );
-  if (!car) {
-    return res.status(404).json({ error: "Car not found" });
-  }
+  const { data: updated, error } = await supabase
+    .from("cars")
+    .update({ used_by: name.trim() })
+    .ilike("plate", req.params.plate)
+    .select();
 
-  car.usedBy = name.trim();
-  writeData(data);
-  res.json(data.cars);
+  if (error) return res.status(500).json({ error: error.message });
+  if (updated.length === 0) return res.status(404).json({ error: "Car not found" });
+
+  const { data } = await supabase.from("cars").select("*");
+  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
 });
 
 // Release a car
-app.post("/api/cars/:plate/release", (req, res) => {
-  const data = readData();
-  const car = data.cars.find(
-    (c) => c.plate.toLowerCase() === req.params.plate.toLowerCase()
-  );
-  if (!car) {
-    return res.status(404).json({ error: "Car not found" });
-  }
+app.post("/api/cars/:plate/release", async (req, res) => {
+  const { data: updated, error } = await supabase
+    .from("cars")
+    .update({ used_by: null })
+    .ilike("plate", req.params.plate)
+    .select();
 
-  car.usedBy = null;
-  writeData(data);
-  res.json(data.cars);
+  if (error) return res.status(500).json({ error: error.message });
+  if (updated.length === 0) return res.status(404).json({ error: "Car not found" });
+
+  const { data } = await supabase.from("cars").select("*");
+  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
 });
 
 // Remove a car
-app.delete("/api/cars/:plate", (req, res) => {
-  const data = readData();
-  data.cars = data.cars.filter(
-    (c) => c.plate.toLowerCase() !== req.params.plate.toLowerCase()
-  );
-  writeData(data);
-  res.json(data.cars);
+app.delete("/api/cars/:plate", async (req, res) => {
+  const { error } = await supabase
+    .from("cars")
+    .delete()
+    .ilike("plate", req.params.plate);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const { data } = await supabase.from("cars").select("*");
+  res.json(data.map((c) => ({ plate: c.plate, usedBy: c.used_by })));
 });
 
-app.listen(PORT, () => {
-  console.log(`Car tracker running at http://localhost:${PORT}`);
-});
+// Only start listening when not running on Vercel
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Car tracker running at http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
