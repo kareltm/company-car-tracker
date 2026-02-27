@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // Supabase setup
 const supabaseUrl = process.env.SUPABASE_URL || "https://nmgwoadartjylcifoimv.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_x5YiauhQX3c8geHTjMum-A_77Y-Qm26";
+const supabaseKey = process.env.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ3dvYWRhcnRqeWxjaWZvaW12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODE0MDIsImV4cCI6MjA4Nzc1NzQwMn0.9ArJx8IozW07vAo9LtfLPdtOfAVcaoRtCUt4k2iGlOU";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(express.json());
