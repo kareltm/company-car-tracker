@@ -129,6 +129,28 @@
     }
     .btn-outline:hover { background: #e5f0ff; }
 
+    .btn-remove-car {
+      background: none;
+      border: 2px solid #d0dce8;
+      border-radius: 8px;
+      color: #003366;
+      opacity: 0.4;
+      font-size: 18px;
+      padding: 6px 10px;
+      cursor: pointer;
+      align-self: flex-end;
+      transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+      display: none;
+    }
+    .btn-remove-car.visible {
+      display: inline-block;
+    }
+    .btn-remove-car:hover {
+      opacity: 1;
+      color: #d9534f;
+      border-color: #d9534f;
+    }
+
     .btn-danger-sm {
       background: none;
       border: none;
@@ -330,6 +352,7 @@
           <option value="">-- Select a car --</option>
         </select>
       </div>
+      <button class="btn btn-remove-car" id="removeCarBtn" onclick="removeSelectedCar()" title="Remove selected car">&times;</button>
       <div class="field">
         <label>Your name</label>
         <input type="text" id="nameInput" placeholder="e.g. Karel" />
@@ -452,6 +475,17 @@
       }
     }
 
+    function removeSelectedCar() {
+      const plate = document.getElementById("carSelect").value;
+      if (plate) removeCar(plate);
+    }
+
+    function updateRemoveBtn() {
+      const btn = document.getElementById("removeCarBtn");
+      const selected = document.getElementById("carSelect").value;
+      btn.classList.toggle("visible", !!selected);
+    }
+
     async function removeCar(plate) {
       if (!confirm(`Remove car ${plate} and all its reservations?`)) return;
 
@@ -513,6 +547,7 @@
       select.innerHTML = '<option value="">-- Select a car --</option>' +
         cars.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
       if (cars.includes(current)) select.value = current;
+      updateRemoveBtn();
     }
 
     function renderGrid() {
@@ -622,7 +657,10 @@
       renderGrid();
 
       // Re-render grid when car selection changes
-      document.getElementById("carSelect").addEventListener("change", renderGrid);
+      document.getElementById("carSelect").addEventListener("change", () => {
+        updateRemoveBtn();
+        renderGrid();
+      });
     }
 
     init();
