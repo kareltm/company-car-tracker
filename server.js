@@ -133,6 +133,55 @@ app.delete("/api/reservations/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Bulk delete reservations for a car on a specific date
+app.delete("/api/reservations", async (req, res) => {
+  const { plate, date } = req.query;
+  if (!plate || !date) {
+    return res.status(400).json({ error: "plate and date query params required" });
+  }
+
+  const { error } = await supabase
+    .from("reservations")
+    .delete()
+    .eq("plate", plate)
+    .eq("date", date);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// Bulk create reservations for multiple hours
+app.post("/api/reservations/bulk", async (req, res) => {
+  const { plate, name, date, hours } = req.body;
+  if (!plate || !name || !date || !Array.isArray(hours) || hours.length === 0) {
+    return res.status(400).json({ error: "plate, name, date, and hours[] are required" });
+  }
+
+  const rows = hours.map(h => {
+    const hr = parseInt(h);
+    if (isNaN(hr) || hr < 8 || hr > 22) return null;
+    return { plate: plate.trim(), name: name.trim(), date, hour: hr };
+  }).filter(Boolean);
+
+  if (rows.length === 0) {
+    return res.status(400).json({ error: "No valid hours provided" });
+  }
+
+  const { data, error } = await supabase
+    .from("reservations")
+    .insert(rows)
+    .select();
+
+  if (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({ error: "Some hours are already reserved" });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.status(201).json(data);
+});
+
 // Only start listening when not running on Vercel
 if (process.env.VERCEL !== "1") {
   app.listen(PORT, () => {

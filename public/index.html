@@ -229,6 +229,28 @@
       width: 70px;
     }
 
+    .week-grid th .clear-day {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      opacity: 0.6;
+      cursor: pointer;
+      margin-top: 2px;
+      transition: opacity 0.15s;
+    }
+    .week-grid th .clear-day:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    .week-grid td.cell-empty.in-selection {
+      background: #c8d8ff !important;
+    }
+
+    .week-grid.dragging {
+      user-select: none;
+    }
+
     .week-grid th .day-date {
       display: block;
       font-weight: 400;
@@ -380,6 +402,9 @@
     let reservations = [];
     let weekOffset = 0; // 0 = this week, 1 = next week
 
+    // Range selection state
+    let dragState = null; // { dateStr, startHour } or null
+
     // --- Date helpers ---
     function getMonday(d) {
       const date = new Date(d);
@@ -521,6 +546,30 @@
       }
     }
 
+    async function makeBulkReservation(plate, date, hours) {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) {
+        showToast("Enter your name first");
+        document.getElementById("nameInput").focus();
+        return;
+      }
+
+      const res = await fetch("/api/reservations/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plate, name, date, hours })
+      });
+
+      if (res.ok) {
+        await loadReservations();
+        renderGrid();
+        showToast(`Reserved ${hours.length} hour${hours.length > 1 ? "s" : ""}`);
+      } else {
+        const err = await res.json();
+        showToast(err.error);
+      }
+    }
+
     async function cancelReservation(id, plate, name) {
       if (!confirm(`Cancel reservation for ${name} on ${plate}?`)) return;
 
@@ -532,6 +581,27 @@
         await loadReservations();
         renderGrid();
         showToast("Reservation cancelled");
+      }
+    }
+
+    async function clearDay(dateStr) {
+      const plate = document.getElementById("carSelect").value;
+      if (!plate) return;
+      const dayReservations = reservations.filter(r => r.plate === plate && r.date === dateStr);
+      if (dayReservations.length === 0) {
+        showToast("No reservations to clear");
+        return;
+      }
+      if (!confirm(`Clear all ${dayReservations.length} reservation(s) for ${plate} on ${dateStr}?`)) return;
+
+      const res = await fetch(`/api/reservations?plate=${encodeURIComponent(plate)}&date=${dateStr}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        await loadReservations();
+        renderGrid();
+        showToast("Day cleared");
       }
     }
 
@@ -570,7 +640,10 @@
 
       let html = "<table><thead><tr><th></th>";
       dates.forEach((d, i) => {
-        html += `<th>${DAY_NAMES[i]}<span class="day-date">${fmtDayNum(d)}/${d.getMonth() + 1}</span></th>`;
+        const dateStr = fmtDate(d);
+        html += `<th>${DAY_NAMES[i]}<span class="day-date">${fmtDayNum(d)}/${d.getMonth() + 1}</span>`;
+        html += `<span class="clear-day" onclick="clearDay('${dateStr}')">Clear day</span>`;
+        html += `</th>`;
       });
       html += "</tr></thead><tbody>";
 
@@ -588,7 +661,7 @@
           if (r) {
             html += `<td class="cell-reserved${todayClass}" onclick="cancelReservation(${r.id}, '${esc(selectedCar)}', '${esc(r.name)}')" title="Click to cancel">${esc(r.name)}</td>`;
           } else {
-            html += `<td class="cell-empty cell-active${todayClass}" onclick="cellClick('${dateStr}', ${hour})" title="Click to reserve"></td>`;
+            html += `<td class="cell-empty cell-active${todayClass}" data-date="${dateStr}" data-hour="${hour}" title="Click or drag to reserve"></td>`;
           }
         });
 
@@ -599,11 +672,85 @@
       grid.innerHTML = html;
     }
 
-    function cellClick(date, hour) {
+    // --- Drag selection for multiple hours ---
+    function getSelectionRange() {
+      if (!dragState) return [];
+      return [];
+    }
+
+    function highlightRange(dateStr, fromHour, toHour) {
+      const minH = Math.min(fromHour, toHour);
+      const maxH = Math.max(fromHour, toHour);
+      document.querySelectorAll(".week-grid td.cell-empty").forEach(td => {
+        const d = td.getAttribute("data-date");
+        const h = parseInt(td.getAttribute("data-hour"));
+        if (d === dateStr && h >= minH && h <= maxH) {
+          td.classList.add("in-selection");
+        } else {
+          td.classList.remove("in-selection");
+        }
+      });
+    }
+
+    function clearHighlight() {
+      document.querySelectorAll(".in-selection").forEach(td => td.classList.remove("in-selection"));
+    }
+
+    document.addEventListener("mousedown", (e) => {
+      const td = e.target.closest("td.cell-empty[data-date]");
+      if (!td) return;
       const plate = document.getElementById("carSelect").value;
       if (!plate) return;
-      makeReservation(plate, date, hour);
-    }
+      e.preventDefault();
+      document.querySelector(".week-grid").classList.add("dragging");
+      dragState = {
+        dateStr: td.getAttribute("data-date"),
+        startHour: parseInt(td.getAttribute("data-hour")),
+        currentHour: parseInt(td.getAttribute("data-hour"))
+      };
+      highlightRange(dragState.dateStr, dragState.startHour, dragState.startHour);
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragState) return;
+      const td = e.target.closest("td.cell-empty[data-date]");
+      if (!td) return;
+      const dateStr = td.getAttribute("data-date");
+      if (dateStr !== dragState.dateStr) return; // only within same day
+      const hour = parseInt(td.getAttribute("data-hour"));
+      dragState.currentHour = hour;
+      highlightRange(dragState.dateStr, dragState.startHour, hour);
+    });
+
+    document.addEventListener("mouseup", (e) => {
+      if (!dragState) return;
+      clearHighlight();
+      const gridEl = document.querySelector(".week-grid");
+      if (gridEl) gridEl.classList.remove("dragging");
+      const plate = document.getElementById("carSelect").value;
+      if (!plate) { dragState = null; return; }
+
+      const minH = Math.min(dragState.startHour, dragState.currentHour);
+      const maxH = Math.max(dragState.startHour, dragState.currentHour);
+      const dateStr = dragState.dateStr;
+      dragState = null;
+
+      // Collect empty hours in range
+      const hours = [];
+      for (let h = minH; h <= maxH; h++) {
+        const key = `${dateStr}|${h}`;
+        const alreadyReserved = reservations.some(r => r.plate === plate && r.date === dateStr && r.hour === h);
+        if (!alreadyReserved) hours.push(h);
+      }
+
+      if (hours.length === 0) return;
+
+      if (hours.length === 1) {
+        makeReservation(plate, dateStr, hours[0]);
+      } else {
+        makeBulkReservation(plate, dateStr, hours);
+      }
+    });
 
     function updateWeekLabel() {
       const dates = getWeekDates();
